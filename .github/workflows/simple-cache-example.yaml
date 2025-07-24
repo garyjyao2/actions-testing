@@ -24,7 +24,7 @@ jobs:
     if: needs.Check-Cache.outputs.cache-hit != 'true'
     strategy:
       matrix:
-        runner: [ default ]
+        runner: [ ubuntu-default ]
     runs-on: ${{ matrix.runner }}
 
     steps:
