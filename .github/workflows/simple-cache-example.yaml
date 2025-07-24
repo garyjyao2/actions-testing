@@ -6,7 +6,7 @@ jobs:
   Check-Cache:
     strategy:
       matrix:
-        runner: [ default ]
+        runner: [ ubuntu-latest ]
     runs-on: ${{ matrix.runner }}
     outputs:
       cache-hit: ${{ steps.cache-restore.outputs.cache-hit }}
@@ -24,7 +24,7 @@ jobs:
     if: needs.Check-Cache.outputs.cache-hit != 'true'
     strategy:
       matrix:
-        runner: [ ubuntu-default ]
+        runner: [ ubuntu-latest ]
     runs-on: ${{ matrix.runner }}
 
     steps:
@@ -59,7 +59,7 @@ jobs:
       )
     strategy:
       matrix:
-        runner: [ default ]
+        runner: [ ubuntu-latest ]
     runs-on: ${{ matrix.runner }}
 
     steps:
