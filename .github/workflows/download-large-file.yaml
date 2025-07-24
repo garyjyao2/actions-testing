@@ -1,0 +1,64 @@
+name: Download Large File
+run-name: ${{ github.actor }} downloading large file
+on:
+  workflow_dispatch:
+    inputs:
+      file_url:
+        description: 'URL of the file to download'
+        required: true
+        default: 'https://github.com/nodejs/node/archive/refs/tags/v24.4.1.tar.gz'
+      output_path:
+        description: 'Path to save the downloaded file'
+        required: false
+        default: 'downloaded_file'
+jobs:
+  download-large-file:
+    runs-on: default
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download file
+        run: |
+          echo "Starting download from ${{ github.event.inputs.file_url }}"
+          
+          # Measure start time
+          START_TIME=$(date +%s)
+          
+          # Download with progress bar to show live progress
+          echo "Downloading file..."
+          curl -L -o "${{ github.event.inputs.output_path }}" "${{ github.event.inputs.file_url }}" \
+            -w "\nDownload completed!\n\nAverage download speed: %{speed_download} bytes/sec\nTotal time: %{time_total} seconds\nSize downloaded: %{size_download} bytes\n"
+
+          # Measure end time and calculate duration
+          END_TIME=$(date +%s)
+          TIME_TOTAL=$(($END_TIME - $START_TIME))
+          
+          # Get file size in bytes
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS
+            SIZE_BYTES=$(stat -f%z "${{ github.event.inputs.output_path }}")
+          else
+            # Linux
+            SIZE_BYTES=$(stat -c%s "${{ github.event.inputs.output_path }}")
+          fi
+          
+          # Calculate speed and sizes using awk which is more widely available than bc
+          SPEED_BYTES=$(awk "BEGIN {printf \"%.2f\", $SIZE_BYTES / $TIME_TOTAL}")
+          SPEED_MBS=$(awk "BEGIN {printf \"%.2f\", $SIZE_BYTES / 1048576 / $TIME_TOTAL}")
+          SIZE_MB=$(awk "BEGIN {printf \"%.2f\", $SIZE_BYTES / 1048576}")
+          
+          # Display results in console
+          echo "Download completed!"
+          echo "Average download speed: $SPEED_MBS MB/s"
+          echo "Total time: $TIME_TOTAL seconds"
+          echo "Size downloaded: $SIZE_MB MB"
+          
+          # Add to GitHub Actions summary
+          echo "## Download Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| File URL | ${{ github.event.inputs.file_url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Output Path | ${{ github.event.inputs.output_path }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Download Speed | $SPEED_MBS MB/s |" >> $GITHUB_STEP_SUMMARY
+          echo "| Download Time | $TIME_TOTAL seconds |" >> $GITHUB_STEP_SUMMARY
+          echo "| File Size | $SIZE_MB MB |" >> $GITHUB_STEP_SUMMARY
