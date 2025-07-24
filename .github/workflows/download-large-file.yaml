@@ -13,7 +13,7 @@ on:
         default: 'downloaded_file'
 jobs:
   download-large-file:
-    runs-on: default
+    runs-on: ubuntu-default
     steps:
       - name: Checkout
         uses: actions/checkout@v4
