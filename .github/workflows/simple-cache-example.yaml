@@ -1,0 +1,94 @@
+name: Simple Cache Example
+on:
+  workflow_dispatch:
+
+jobs:
+  Check-Cache:
+    strategy:
+      matrix:
+        runner: [ default ]
+    runs-on: ${{ matrix.runner }}
+    outputs:
+      cache-hit: ${{ steps.cache-restore.outputs.cache-hit }}
+    steps:
+      - name: Check for cache
+        id: cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: large-file-${{ matrix.runner }}
+          key: large-file-${{ matrix.runner }}
+          lookup-only: true
+
+  Setup-Github-Packages:
+    needs: Check-Cache
+    if: needs.Check-Cache.outputs.cache-hit != 'true'
+    strategy:
+      matrix:
+        runner: [ default ]
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: Create large file
+        run: |
+          echo "Creating a 1GB file..."
+          dd if=/dev/urandom of=large-file.bin bs=1M count=1000
+          ls -lh large-file.bin
+          mkdir -p large-file-${{ matrix.runner }}
+          cp large-file.bin large-file-${{ matrix.runner }}/
+      - name: Cache large file
+        id: cache-check
+        uses: actions/cache/save@v4
+        with:
+          path: large-file-${{ matrix.runner }}
+          key: large-file-${{ matrix.runner }}
+
+      - name: Verify cache status
+        run: |
+          if [ "${{ steps.cache-check.outputs.cache-hit }}" = "true" ]; then
+            echo "Cache hit! File was retrieved from cache."
+          else
+            echo "Cache miss. File was newly cached."
+          fi                    
+  Retrieve-Github-Packages:
+    needs: [ Setup-Github-Packages, Check-Cache ]
+    if: |
+      always() &&
+      (
+        needs.Setup-Github-Packages.result == 'success' ||
+        needs.Check-Cache.outputs.cache-hit == 'true'
+      )
+    strategy:
+      matrix:
+        runner: [ default ]
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: Measuring cache restore time
+        id: cache_restore_timing
+        run: |
+          # Record start time
+          start_time=$(date +%s)
+          echo "start_time=${start_time}" >> $GITHUB_OUTPUT
+          # Log start of operation
+          echo "Cache restore operation starting..."
+          echo "Start timestamp: $(date)"
+      - name: Retrieving large file from cache
+        id: cache_restore
+        uses: actions/cache/restore@v4
+        with:
+          path: large-file-${{ matrix.runner }}
+          key: large-file-${{ matrix.runner }}
+      - name: Record cache restore completion time
+        id: cache_timing
+        run: |
+          # Record end time and calculate duration
+          end_time=$(date +%s)
+          start_time=${{ steps.cache_restore_timing.outputs.start_time }}
+          duration=$((end_time - start_time))
+          # Output timing information
+          echo "### Cache Restore Time" >> $GITHUB_STEP_SUMMARY
+          echo "* Duration: ${duration} seconds" >> $GITHUB_STEP_SUMMARY
+          echo "* Cache hit: ${{ steps.cache_restore.outputs.cache-hit }}" >> $GITHUB_STEP_SUMMARY
+          # Store as output variable
+          echo "duration=${duration}" >> $GITHUB_OUTPUT
+          echo "cache_hit=${{ steps.cache_restore.outputs.cache-hit }}" >> $GITHUB_OUTPUT
