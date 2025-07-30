@@ -11,6 +11,8 @@ jobs:
     outputs:
       dll_version: ${{ steps.get_version.outputs.dll_version }}
     steps:
+      - name: Show default Python version
+        run: python --version
       - name: Get msoledbsql.dll Version
         id: get_version
         shell: pwsh
@@ -37,5 +39,3 @@ jobs:
           echo "|---------------|--------------|" >> $GITHUB_STEP_SUMMARY
           echo "| windows-2022  | ${{ needs.check-msoledbsql-version.outputs.dll_version[1] }} |" >> $GITHUB_STEP_SUMMARY
           echo "| windows-latest| ${{ needs.check-msoledbsql-version.outputs.dll_version[2] }} |" >> $GITHUB_STEP_SUMMARY
-      - name: Show default Python version
-        run: python --version
