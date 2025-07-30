@@ -6,7 +6,7 @@ jobs:
   check-msoledbsql-version:
     strategy:
       matrix:
-        runner: [windows-2019, windows-2022, windows-latest]
+        runner: [windows-2022, windows-latest]
     runs-on: ${{ matrix.runner }}
     outputs:
       dll_version: ${{ steps.get_version.outputs.dll_version }}
@@ -35,6 +35,7 @@ jobs:
           echo "## msoledbsql.dll Version Report" >> $GITHUB_STEP_SUMMARY
           echo "| Runner         | Version      |" >> $GITHUB_STEP_SUMMARY
           echo "|---------------|--------------|" >> $GITHUB_STEP_SUMMARY
-          echo "| windows-2019  | ${{ needs.check-msoledbsql-version.outputs.dll_version[0] }} |" >> $GITHUB_STEP_SUMMARY
           echo "| windows-2022  | ${{ needs.check-msoledbsql-version.outputs.dll_version[1] }} |" >> $GITHUB_STEP_SUMMARY
           echo "| windows-latest| ${{ needs.check-msoledbsql-version.outputs.dll_version[2] }} |" >> $GITHUB_STEP_SUMMARY
+      - name: Show default Python version
+        run: python --version
