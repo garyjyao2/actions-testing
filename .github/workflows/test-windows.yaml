@@ -34,6 +34,7 @@ jobs:
           } else {
             echo "msoledbsql.dll not found at $dllPath."
             echo "dll_version=Not found" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
 
   summary-report:
     needs: check-msoledbsql-version
