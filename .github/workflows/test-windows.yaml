@@ -1,0 +1,38 @@
+name: Check msolesqldbdll Version on Windows
+on:
+  workflow_dispatch:
+
+jobs:
+  check-msolesqldbdll-version:
+    runs-on: windows-latest
+    steps:
+      - name: Locate msolesqldbdll.dll
+        id: find_dll
+        shell: pwsh
+        run: |
+          $dll = Get-ChildItem -Path C:\ -Filter msolesqldbdll.dll -Recurse -ErrorAction SilentlyContinue -Force | Select-Object -First 1
+          if ($dll) {
+            echo "Found: $($dll.FullName)"
+            echo "dll_path=$($dll.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            echo "msolesqldbdll.dll not found"
+            echo "dll_path=" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+      - name: Get msolesqldbdll.dll Version
+        if: steps.find_dll.outputs.dll_path != ''
+        shell: pwsh
+        run: |
+          $dllPath = '${{ steps.find_dll.outputs.dll_path }}'
+          if (Test-Path $dllPath) {
+            $version = (Get-Item $dllPath).VersionInfo.FileVersion
+            echo "msolesqldbdll.dll version: $version"
+            echo "## msolesqldbdll.dll Version: $version" >> $env:GITHUB_STEP_SUMMARY
+          } else {
+            echo "msolesqldbdll.dll not found at expected path."
+            echo "## msolesqldbdll.dll not found" >> $env:GITHUB_STEP_SUMMARY
+          }
+      - name: Report if not found
+        if: steps.find_dll.outputs.dll_path == ''
+        run: |
+          echo "msolesqldbdll.dll not found on this runner."
+          echo "## msolesqldbdll.dll not found on this runner." >> $GITHUB_STEP_SUMMARY
