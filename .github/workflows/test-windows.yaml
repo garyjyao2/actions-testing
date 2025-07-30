@@ -4,17 +4,37 @@ on:
 
 jobs:
   check-msoledbsql-version:
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        runner: [windows-2019, windows-2022, windows-latest]
+    runs-on: ${{ matrix.runner }}
+    outputs:
+      dll_version: ${{ steps.get_version.outputs.dll_version }}
     steps:
       - name: Get msoledbsql.dll Version
+        id: get_version
         shell: pwsh
         run: |
           $dllPath = 'C:\Windows\SysWOW64\msoledbsql.dll'
           if (Test-Path $dllPath) {
             $version = (Get-Item $dllPath).VersionInfo.FileVersion
             echo "msoledbsql.dll version: $version"
-            echo "## msoledbsql.dll Version: $version" >> $env:GITHUB_STEP_SUMMARY
+            echo "dll_version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           } else {
             echo "msoledbsql.dll not found at $dllPath."
-            echo "## msoledbsql.dll not found at $dllPath" >> $env:GITHUB_STEP_SUMMARY
+            echo "dll_version=Not found" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           }
+
+  summary-report:
+    needs: check-msoledbsql-version
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Write DLL version summary
+        run: |
+          echo "## msoledbsql.dll Version Report" >> $GITHUB_STEP_SUMMARY
+          echo "| Runner         | Version      |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------------|--------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| windows-2019  | ${{ needs.check-msoledbsql-version.outputs.dll_version[0] }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| windows-2022  | ${{ needs.check-msoledbsql-version.outputs.dll_version[1] }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| windows-latest| ${{ needs.check-msoledbsql-version.outputs.dll_version[2] }} |" >> $GITHUB_STEP_SUMMARY
